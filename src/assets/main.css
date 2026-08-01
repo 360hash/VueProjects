@@ -1,0 +1,14 @@
+/* 清除浏览器自带的边距，让导航栏能贴到最边上 */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* 确保 Vue 的根容器也是全宽 */
+#app {
+  width: 100%;
+  max-width: none; /* 取消最大宽度限制 */
+  margin: 0;
+  padding: 0;
+}
