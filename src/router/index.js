@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 // 1. 确保导入了你的主页和刚刚新建的文章页
 import Home from '../views/Home.vue'
 import Articles from '../views/Articles.vue' 
+import Admin from '../views/Admin.vue'
 
 const routes = [
   {
@@ -15,6 +16,11 @@ const routes = [
     name: 'articles',
     component: Articles
   },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: Admin
+  }
 ]
 
 const router = createRouter({

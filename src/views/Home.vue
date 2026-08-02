@@ -11,14 +11,12 @@
       <router-link to="/">首页</router-link>
       <router-link to="/articles">文章</router-link>
       <router-link to="/admin">写作后台</router-link>
+      <router-link to="/navigation">工具导航</router-link>
+
     </nav>
 
-    <main 
-  class="carousel-container" 
-  @mouseenter="stopAutoPlay" 
-  @mouseleave="startAutoPlay"
->
-  </main>
+    <main class="carousel-container" @mouseenter="stopAutoPlay" @mouseleave="startAutoPlay">
+    </main>
   
     <main class="carousel-container" @mouseenter="stopAutoPlay" @mouseleave="startAutoPlay">
       <div class="carousel" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
@@ -42,17 +40,17 @@
     </main>
     
     <section class="recent-updates-section">
-      <h2 class="section-title">✨ 文章</h2>
-      
+      <h2 class="section-title">✨ 最新文章</h2>
       <div class="updates-list">
-        <div class="update-item" v-for="item in recentTexts" :key="item.id">
+        <div class="update-item" v-for="item in articles" :key="item.id">
+          <img v-if="item.cover_image" :src="item.cover_image" alt="封面图" style="width: 100%; height: 200px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;">
           <div class="update-meta">
-            <span class="update-date">📅 {{ item.date }}</span>
-            <span class="update-tag">{{ item.tag }}</span>
+          <span class="update-date">📅 {{ item.created_at }}</span>
+          <span class="update-tag">👁️ 阅读量: {{ item.views }}</span>
           </div>
+          
           <h3 class="update-title">{{ item.title }}</h3>
-          <p class="update-preview">{{ item.preview }}</p>
-          <router-link to="/articles" class="read-more-link">阅读全文 →</router-link>
+          <p class="update-preview">{{ item.content }}</p>
         </div>
       </div>
     </section>
@@ -64,6 +62,15 @@
           <h4>关于博主</h4>
           <p>一个走在前端开发路上的技术宅，热衷于用代码构建有趣的世界。在这里分享关于技术、思考与生活的点滴。</p>
         </div>
+
+        <!-- 文章 -->
+        <div v-for="article in articles" :key="article.id">
+          <h2>
+            {{article.title}}
+          </h2>
+          <p>{{article.content}}</p>
+        </div>
+        <!-- 文章 -->
 
         <div class="footer-section contact">
           <h4>联系方式</h4>
@@ -101,7 +108,17 @@
 
 <script setup>
 import { ref } from 'vue'
+import {getArticles} from "@/api/article"
+// 文章列表数据
+const articles=ref([])
 
+onMounted(async()=>{
+
+    articles.value =
+        await getArticles()
+
+})
+// 文章列表数据
 const currentIndex = ref(0)
 
 // 1. 专门用来解析本地图片路径的“魔法函数”
@@ -163,23 +180,23 @@ onUnmounted(() => {
 // ...你原有的轮播图数据和定时器逻辑...
 
 // 🌟 新增：最近发布的文字数据
-// const recentTexts = ref([
-//   {
-//     id: 1,
-//     date: '2026-06-20',
-//     tag: '新鲜事',
-//     title: '今天成功调通了 Vue 3 轮播图！',
-//     preview: '经历了几次路径找不到和组件逻辑卡壳后，终于利用 Vite 的新特性把本地图片成功加载了出来。顺便写好了自动播放和鼠标悬浮暂停的功能，前端开发真有意思！'
-//   },
-//   {
-//     id: 2,
-//     date: '2026-06-18',
-//     tag: '前端技术',
-//     title: '关于现代前端构建工具的一点随笔',
-//     preview: '从 require() 到 import，从 Webpack 到 Vite，技术的更迭速度远超想象。旧的代码虽然能跑，但抱残守缺终究会被时代淘汰，拥抱新标准才是正解。'
-//   }
-// ])
-// </script>
+const recentTexts = ref([
+  {
+    id: 1,
+    date: '2026-06-20',
+    tag: 'article.title',
+    title: '今天成功调通了 Vue 3 轮播图！',
+    preview: '经历了几次路径找不到和组件逻辑卡壳后，终于利用 Vite 的新特性把本地图片成功加载了出来。顺便写好了自动播放和鼠标悬浮暂停的功能，前端开发真有意思！'
+  },
+  {
+    id: 2,
+    date: '2026-06-18',
+    tag: '前端技术',
+    title: '关于现代前端构建工具的一点随笔',
+    preview: '从 require() 到 import，从 Webpack 到 Vite，技术的更迭速度远超想象。旧的代码虽然能跑，但抱残守缺终究会被时代淘汰，拥抱新标准才是正解。'
+  }
+])
+</script>
 
 <style scoped>
 /* 页面整体布局 */
