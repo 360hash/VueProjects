@@ -49,7 +49,7 @@
           <span class="update-tag">👁️ 阅读量: {{ item.views }}</span>
           </div>
           
-          <h3 class="update-title">{{ item.title }}</h3>
+          <h2 class="update-title">{{ item.title }}</h2>
           <p class="update-preview">{{ item.content }}</p>
         </div>
       </div>
@@ -64,12 +64,12 @@
         </div>
 
         <!-- 文章 -->
-        <div v-for="article in articles" :key="article.id">
+        <!-- <div v-for="article in articles" :key="article.id">
           <h2>
             {{article.title}}
           </h2>
           <p>{{article.content}}</p>
-        </div>
+        </div> -->
         <!-- 文章 -->
 
         <div class="footer-section contact">
