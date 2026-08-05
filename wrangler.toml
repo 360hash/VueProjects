@@ -1,5 +1,14 @@
 name = "vueprojects"
+
+main = "worker.js"
+
 compatibility_date = "2026-08-01"
 
-# 告诉 Cloudflare Wrangler 将 dist 目录作为静态资源发布
-assets = { directory = "./dist" }
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DATA"
+database_name = "blog"
+database_id = "5c10db22-e98c-4cdc-b31d-73218aba8ccf"
