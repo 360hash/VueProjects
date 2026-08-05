@@ -49,6 +49,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { publishArticle } from "@/api/article";
 
 // 定义一个对象，用来把输入框里的数据绑定收集起来
 const articleForm = ref({
@@ -58,10 +59,22 @@ const articleForm = ref({
 })
 
 // 点击“发布文章”按钮后触发的函数
-const submitArticle = () => {
-  // 目前只是在前端测试收集数据是否成功，后面我们会在这里加上发送给后端的代码
-  console.log('准备提交到数据库的数据：', articleForm.value)
-  alert('前端数据收集成功！下一步我们将编写发送给 Worker 的请求代码。')
+const submitArticle = async () => {
+  try {
+    console.log("开始发布");
+    console.log(articleForm.value);
+
+    const res = await publishArticle(articleForm.value);
+
+    console.log("接口返回：", res);
+
+    if (res.success) {
+      alert("发布成功");
+    }
+  } catch (error) {
+    console.error(error);
+    alert(error.message);
+  }
 }
 </script>
 
