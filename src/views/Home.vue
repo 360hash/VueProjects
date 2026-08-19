@@ -10,8 +10,8 @@
     <nav class="site-nav">
       <router-link to="/">首页</router-link>
       <router-link to="/articles">文章</router-link>
-      <router-link to="/admin">写作后台</router-link>
       <router-link to="/navigation">工具导航</router-link>
+      <router-link to="/Manage">博客后台</router-link>
 
     </nav>
 
@@ -42,7 +42,7 @@
     <section class="recent-updates-section">
       <h2 class="section-title">✨ 最新文章</h2>
       <div class="updates-list">
-        <div class="update-item" v-for="item in articles" :key="item.id">
+        <div class="update-item" v-for="item in articles" :key="item.id" @click="goArticle(item.id)">
           <img v-if="item.cover_image" :src="item.cover_image" alt="封面图" style="width: 100%; height: 200px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;">
           <div class="update-meta">
           <span class="update-date">📅 {{ item.created_at }}</span>
@@ -74,7 +74,7 @@
 
         <div class="footer-section contact">
           <h4>联系方式</h4>
-          <div class="contact-item">📧 邮箱：不给看</div>
+          <div class="contact-item">📧 邮箱：暂无</div>
           <div class="contact-item">🌐 网站：www.360.com</div>
           <div class="contact-item">📍 坐标：中国</div>
         </div>
@@ -109,6 +109,7 @@
 <script setup>
 import { ref } from 'vue'
 import {getArticles} from "@/api/article"
+
 // 文章列表数据
 const articles=ref([])
 
@@ -130,15 +131,16 @@ const getImageUrl = (name) => {
 // 2. 轮播图数据
 // 🌟 修正点：只传【文件名 + 正确的 .jpg 后缀】
 const images = ref([
-  { src: getImageUrl('img1.jpg'), title: '欢迎来到我的主页' },
-  { src: getImageUrl('img2.jpg'), title: '第二张轮播图' },
-  { src: getImageUrl('img3.jpg'), title: '第三张轮播图' },
-  { src: getImageUrl('img4.jpg'), title: '第四张轮播图' },
+  { src: getImageUrl('img1.jpg'), title: '冰岛杰古沙龙湖' },
+  { src: getImageUrl('img2.jpg'), title: '大海、沙滩与夕阳' },
+  { src: getImageUrl('img3.jpg'), title: '高与低' },
+  { src: getImageUrl('img4.jpg'), title: '凯恩戈姆山脉' },
   { src: getImageUrl('img5.jpg'), title: '第五张轮播图' },
-  { src: getImageUrl('img6.jpg'), title: '第六张轮播图' },
-  { src: getImageUrl('img7.jpg'), title: '第七张轮播图' },
-  { src: getImageUrl('img8.jpg'), title: '第八张轮播图' },
-  { src: getImageUrl('img9.jpg'), title: '第九张轮播图' }
+  { src: getImageUrl('img6.jpg'), title: '闪亮的盐水' },
+  { src: getImageUrl('img7.jpg'), title: '一个诗意的港口' },
+  { src: getImageUrl('img8.jpg'), title: '西南方向的剪影' },
+  { src: getImageUrl('img9.jpg'), title: '驾驭双色造型' },
+  { src: getImageUrl('img10.jpg'), title: '中国丽江玉龙雪山蓝月谷' }
 ])
 const nextSlide = () => {
   // 假设共 8 张图，(7 + 1) % 8 = 0。完美的自动回到了第一张！
@@ -176,26 +178,32 @@ onUnmounted(() => {
   stopAutoPlay()
 })
 
+import { useRouter } from "vue-router"
 
+const router = useRouter()
+
+function goArticle(id){
+  router.push(`/articles/${id}`)
+}
 // ...你原有的轮播图数据和定时器逻辑...
 
 // 🌟 新增：最近发布的文字数据
-const recentTexts = ref([
-  {
-    id: 1,
-    date: '2026-06-20',
-    tag: 'article.title',
-    title: '今天成功调通了 Vue 3 轮播图！',
-    preview: '经历了几次路径找不到和组件逻辑卡壳后，终于利用 Vite 的新特性把本地图片成功加载了出来。顺便写好了自动播放和鼠标悬浮暂停的功能，前端开发真有意思！'
-  },
-  {
-    id: 2,
-    date: '2026-06-18',
-    tag: '前端技术',
-    title: '关于现代前端构建工具的一点随笔',
-    preview: '从 require() 到 import，从 Webpack 到 Vite，技术的更迭速度远超想象。旧的代码虽然能跑，但抱残守缺终究会被时代淘汰，拥抱新标准才是正解。'
-  }
-])
+// const recentTexts = ref([
+//   {
+//     id: 1,
+//     date: '2026-06-20',
+//     tag: 'article.title',
+//     title: '今天成功调通了 Vue 3 轮播图！',
+//     preview: '经历了几次路径找不到和组件逻辑卡壳后，终于利用 Vite 的新特性把本地图片成功加载了出来。顺便写好了自动播放和鼠标悬浮暂停的功能，前端开发真有意思！'
+//   },
+//   {
+//     id: 2,
+//     date: '2026-06-18',
+//     tag: '前端技术',
+//     title: '关于现代前端构建工具的一点随笔',
+//     preview: '从 require() 到 import，从 Webpack 到 Vite，技术的更迭速度远超想象。旧的代码虽然能跑，但抱残守缺终究会被时代淘汰，拥抱新标准才是正解。'
+//   }
+// ])
 </script>
 
 <style scoped>

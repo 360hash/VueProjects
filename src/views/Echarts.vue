@@ -1,4 +1,4 @@
- 最近更新<template>
+<template>
   <div class="chart-wrapper">
     <v-chart class="chart" :option="option" autoresize />
   </div>

@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// 1. 确保导入了你的主页和刚刚新建的文章页
 import Home from '../views/Home.vue'
-import Articles from '../views/Articles.vue' 
+import Articles from '../views/Articles.vue'
 import Admin from '../views/Admin.vue'
+import Navigation from '../views/Navigation.vue'
+import Manage from '../views/Manage.vue'
+import Login from '../views/Login.vue'
 
 const routes = [
   {
@@ -10,22 +12,70 @@ const routes = [
     name: 'home',
     component: Home
   },
-  // 2. 🌟 加上这一段！告诉路由：当网址变成 /articles 时，展示 Articles 组件
   {
     path: '/articles',
     name: 'articles',
     component: Articles
   },
   {
+    path: '/articles/:id',
+    name: 'article-detail',
+    component: Articles
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/Navigation',
+    name: 'Navigation',
+    component: Navigation
+  },
+  {
+    path: '/Manage',
+    name: 'Manage',
+    component: Manage,
+    meta: {
+      requiresAuth: true,
+    }
+  },
+  {
     path: '/admin',
     name: 'Admin',
-    component: Admin
+    component: Admin,
+    meta: {
+      requiresAuth: true,
+    }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
+})
+
+router.beforeEach((to) => {
+  const token = localStorage.getItem('admin_token')
+
+  if (to.meta.requiresAuth && !token) {
+    return {
+      path: '/login',
+      query: {
+        redirect: to.fullPath,
+      }
+    }
+  }
+
+  if (to.path === '/login' && token) {
+    return '/Manage'
+  }
+
+  return true
 })
 
 export default router

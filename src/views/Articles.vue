@@ -1,243 +1,466 @@
 <template>
-  <div class="articles-page-container">
-    <header class="site-header">
-      <h1>360</h1>
-      <p>为平等和自由服务</p>
-    </header>
-
+  <div class="article-container">
     <nav class="site-nav">
       <router-link to="/">首页</router-link>
-      <router-link to="/articles">文章</router-link>
-      <router-link to="/admin">写作后台</router-link>
+      <router-link to="/Navigation">工具导航</router-link>
     </nav>
 
-    <main class="articles-main">
-      <h2 class="page-title">📝 全部文章</h2>
-      
-      <!-- 加载中状态 -->
-      <div v-if="loading" class="loading-state">
-        ⏳ 正在从 Cloudflare 边缘节点获取文章...
-      </div>
+    <div v-if="!route.params.id" class="article-list-wrap">
+      <header class="list-hero">
+        <h1>文章列表</h1>
+      </header>
 
-      <!-- 文章列表 -->
-      <div v-else-if="articles.length > 0" class="articles-list">
-        <article class="article-card" v-for="article in articles" :key="article.id">
-          <div class="article-info">
-            <span class="article-date">📅 {{ article.date }}</span>
-            <span class="article-category">🏷️ {{ article.category }}</span>
+      <main class="article-list">
+        <div v-for="item in articles" :key="item.id" class="article-card" @click="goArticle(item.id)">
+          <img v-if="item.cover_image" :src="item.cover_image" alt="cover" class="article-thumb" />
+          <div class="article-card-body">
+            <h3>{{ item.title }}</h3>
+            <div class="meta-line">
+              <span>📅 {{ item.created_at }}</span>
+              <span>👁️ {{ item.views }}</span>
+            </div>
+            <p>{{ formatPreview(item.content) }}</p>
           </div>
-          
-          <h3 class="article-title">{{ article.title }}</h3>
-          <p class="article-excerpt">{{ article.excerpt }}</p>
-          
-          <div class="article-footer">
-            <span class="article-views">👁️ {{ article.views }} 次浏览</span>
-            <!-- 修改点：将 button 换成了 router-link，实现点击跳转 -->
-            <router-link :to="'/post/' + article.slug" class="read-more-btn">
-              阅读全文 →
-            </router-link>
+        </div>
+      </main>
+    </div>
+
+    <template v-else>
+      <header class="article-hero" :style="{ backgroundImage: `url(${article.cover_image || defaultCover})` }">
+        <div class="hero-overlay">
+          <h1 class="hero-title tracking-in-expand">{{ article.title }}</h1>
+          <div class="hero-meta fade-in-bottom">
+            <span class="meta-tag">📅 {{ article.created_at }}</span>
+            <span class="meta-tag">👁️ 阅读量: {{ article.views }}</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="article-body">
+        <article class="glass-card slide-up">
+          <div class="content-text markdown-body" v-html="articleHtml"></div>
+
+          <div class="action-bar">
+            <button class="back-btn" @click="goBack">
+              <i class="fa-solid fa-arrow-left"></i> 返回上一页
+            </button>
           </div>
         </article>
-      </div>
-
-      <!-- 无文章状态 -->
-      <div v-else class="empty-state">
-        暂无文章，快去后台发布第一篇吧！
-      </div>
-    </main>
-
-    <footer class="site-footer">
-      <p>© {{ new Date().getFullYear() }} 我的个人博客. 保留所有权利。</p>
-    </footer>
+      </main>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import MarkdownIt from 'markdown-it'
 
-const articles = ref([])
-const loading = ref(true)
+import { getArticleById, getArticles } from '@/api/article'
 
-// 页面加载时向 Cloudflare 后端请求 D1 数据库的数据
-onMounted(async () => {
-  try {
-    const res = await fetch('/api/posts')
-    if (res.ok) {
-      const data = await res.json()
-      // 将数据库拿到的字段映射回你的页面变量
-      articles.value = data.map(item => ({
-        id: item.id,
-        slug: item.slug,
-        title: item.title,
-        excerpt: item.description || '暂无摘要...',
-        date: item.created_at ? item.created_at.split('T')[0] : '近期',
-        category: item.category || '技术随笔',
-        views: item.views || 1
-      }))
-    }
-  } catch (err) {
-    console.error('获取文章失败:', err)
-  } finally {
-    loading.value = false
-  }
+const route = useRoute()
+const router = useRouter()
+
+const md = new MarkdownIt({
+  html: true,
+  breaks: true,
 })
+
+const defaultCover = new URL('../assets/image/img1.jpg', import.meta.url).href
+
+const article = ref({
+  title: '加载中...',
+  created_at: '',
+  views: 0,
+  content: '',
+  cover_image: ''
+})
+
+const articleHtml = ref('')
+const articles = ref([])
+
+function formatPreview(content) {
+  if (!content) return '暂无内容'
+
+  const text = String(content)
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/[#*_>`~-]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return text || '图片内容'
+}
+
+function normalizeImageUrl(url) {
+  if (!url) return ''
+
+  const value = String(url).trim()
+  const pexelsMatch = value.match(/pexels\.com\/(?:zh-cn\/)?photo\/(\d+)/i)
+  if (pexelsMatch && pexelsMatch[1]) {
+    const id = pexelsMatch[1]
+    return `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1200`
+  }
+
+  return value
+}
+
+function normalizeContentForRender(content) {
+  if (!content) return ''
+
+  let value = String(content).trim()
+
+  value = value.replace(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/gi, (_, url) => {
+    return `![](${normalizeImageUrl(url)})`
+  })
+
+  value = value.replace(/<img\s+[^>]*src=["']?(https?:\/\/[^"'\s>]+)["']?[^>]*>/gi, (match, url) => {
+    return match.replace(url, normalizeImageUrl(url))
+  })
+
+  value = value.replace(/(https?:\/\/[^\s<>"]+\.(?:jpg|jpeg|png|gif|webp|avif|bmp)(?:\?[^\s<>"]*)?)/gi, (url) => {
+    return normalizeImageUrl(url)
+  })
+
+  value = value.replace(/(https?:\/\/[^\s<>"]*pexels\.com\/[^\s<>"]+)/gi, (url) => {
+    return normalizeImageUrl(url)
+  })
+
+  return value
+}
+
+function renderArticleContent(content) {
+  if (!content) return '<p>暂无内容</p>'
+
+  const value = normalizeContentForRender(content)
+  const directImage = value.match(/^https?:\/\//i) ? value : ''
+
+  if (directImage) {
+    return `<img src="${normalizeImageUrl(directImage)}" alt="article-image" style="max-width:100%; border-radius:12px; margin:20px 0;" />`
+  }
+
+  return md.render(value)
+}
+
+async function loadArticleList() {
+  try {
+    const res = await getArticles()
+    articles.value = Array.isArray(res) ? res : []
+  } catch (error) {
+    console.error('加载文章列表失败:', error)
+  }
+}
+
+async function loadArticleDetail(id) {
+  if (!id) return
+
+  try {
+    let res = await getArticleById(id)
+
+    if (!res || typeof res !== 'object') {
+      const list = await getArticles()
+      const matched = Array.isArray(list) ? list.find(item => Number(item.id) === Number(id)) : null
+
+      if (!matched) {
+        article.value = {
+          title: '文章异常',
+          created_at: '',
+          views: 0,
+          content: '后端返回数据异常，请检查接口。',
+          cover_image: ''
+        }
+        articleHtml.value = '<p>后端返回数据异常，请检查接口。</p>'
+        return
+      }
+
+      res = matched
+    }
+
+    article.value = res
+    articleHtml.value = renderArticleContent(res.content || '')
+  } catch (error) {
+    console.error('加载文章详情失败:', error)
+    article.value = {
+      title: '加载失败',
+      created_at: '',
+      views: 0,
+      content: '文章加载失败',
+      cover_image: ''
+    }
+    articleHtml.value = '<p>文章加载失败，请稍后重试。</p>'
+  }
+}
+
+function goArticle(id) {
+  router.push(`/articles/${id}`)
+}
+
+function goBack() {
+  router.back()
+}
+
+async function initPage() {
+  if (route.params.id) {
+    await loadArticleDetail(route.params.id)
+  } else {
+    await loadArticleList()
+  }
+}
+
+onMounted(() => {
+  initPage()
+})
+
+watch(
+  () => route.params.id,
+  async (newId) => {
+    if (newId) {
+      await loadArticleDetail(newId)
+    } else {
+      await loadArticleList()
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
-/* 保持你原本优秀的 CSS 样式不变 */
-.articles-page-container {
-  display: flex;
-  flex-direction: column;
+.article-container {
   min-height: 100vh;
+  background-color: #f4f7f6;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #f8f9fa;
-}
-
-.site-header {
-  background-color: #2c3e50;
-  width: 100%;
-  color: white;
-  text-align: center;
-  padding: 15px 0;
-}
-
-.site-header h1 {
-  margin: 0;
-  font-size: 2.5rem;
-}
-
-.site-header p {
-  margin: 5px 0 0 0;
-  color: #aeb6bf;
 }
 
 .site-nav {
   background-color: #34495e;
   display: flex;
   justify-content: flex-start;
-  gap: 60px;
+  gap: 100px;
   padding: 15px 90px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 10;
 }
+.site-nav a { color: white; text-decoration: none; font-size: 1.1rem; font-weight: 500; transition: color 0.3s; }
+.site-nav a:hover, .site-nav a.router-link-active { color: #42b983; }
 
-.site-nav a {
-  color: white;
-  text-decoration: none;
-  font-size: 1.1rem;
-  font-weight: 500;
-  transition: color 0.3s;
-}
-
-.site-nav a:hover, .site-nav a.router-link-active {
-  color: #42b983;
-}
-
-.articles-main {
-  flex-grow: 1;
-  width: 100%;
-  max-width: 900px;
-  margin: 40px auto;
+.article-list-wrap {
+  max-width: 1100px;
+  margin: 40px auto 80px;
   padding: 0 20px;
-  box-sizing: border-box;
 }
 
-.page-title {
-  color: #2c3e50;
-  margin-bottom: 30px;
-  font-size: 1.8rem;
-  border-bottom: 2px solid #42b983;
-  padding-bottom: 10px;
-  width: fit-content;
+.list-hero {
+  margin-bottom: 24px;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #2d3748, #3b82f6);
+  border-radius: 18px;
+  color: white;
+  box-shadow: 0 20px 30px rgba(44, 62, 80, 0.15);
 }
 
-.articles-list {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
+.list-hero h1 {
+  margin: 0;
+  font-size: 2.3rem;
+}
+
+.article-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
 }
 
 .article-card {
-  background-color: white;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s, box-shadow 0.3s;
-  border-left: 5px solid #34495e;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
 }
 
 .article-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-  border-left-color: #42b983;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.12);
 }
 
-.article-info {
+.article-thumb {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.article-card-body {
+  padding: 18px 18px 20px;
+}
+
+.article-card-body h3 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+  color: #1f2937;
+}
+
+.meta-line {
   display: flex;
-  gap: 20px;
-  font-size: 0.9rem;
-  color: #7f8c8d;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: #64748b;
   margin-bottom: 12px;
 }
 
-.article-title {
-  color: #2c3e50;
-  margin: 0 0 12px 0;
-  font-size: 1.5rem;
+.article-card-body p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.8;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
-.article-excerpt {
-  color: #555;
-  line-height: 1.6;
-  font-size: 1.05rem;
-  margin: 0 0 20px 0;
+.article-hero {
+  position: relative;
+  width: 100%;
+  height: 60vh;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
-.article-footer {
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  border-top: 1px dashed #eee;
-  padding-top: 15px;
+  padding-top: 50px;
 }
 
-.article-views {
-  font-size: 0.9rem;
-  color: #95a5a6;
-}
-
-/* 链接样式改为按钮形状 */
-.read-more-btn {
-  background-color: transparent;
-  color: #42b983;
-  border: 1px solid #42b983;
-  padding: 6px 14px;
-  border-radius: 4px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s;
-  display: inline-block;
-}
-
-.read-more-btn:hover {
-  background-color: #42b983;
+.hero-title {
   color: white;
+  font-size: 3rem;
+  font-weight: bold;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  margin-bottom: 20px;
+  text-align: center;
+  padding: 0 20px;
 }
 
-.loading-state, .empty-state {
-  text-align: center;
+.hero-meta {
+  display: flex;
+  gap: 20px;
+}
+
+.meta-tag {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  padding: 6px 15px;
+  border-radius: 30px;
+  color: white;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.article-body {
+  max-width: 900px;
+  margin: -100px auto 50px auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 5;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
   padding: 50px;
-  color: #7f8c8d;
-  background: white;
-  border-radius: 8px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255,255,255,0.5);
 }
 
-.site-footer {
-  background-color: #1a252f;
-  color: #7f8c8d;
-  text-align: center;
-  padding: 20px 0;
-  margin-top: auto;
+.content-text {
+  font-size: 1.15rem;
+  line-height: 2;
+  color: #2c3e50;
+  white-space: pre-wrap;
+  letter-spacing: 0.5px;
+}
+
+.action-bar {
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 1px dashed #ddd;
+  text-align: right;
+}
+
+.back-btn {
+  background: #42b983;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background: #33a06f;
+  transform: translateX(-5px);
+}
+
+.tracking-in-expand {
+  animation: tracking-in-expand 0.8s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+}
+@keyframes tracking-in-expand {
+  0% { letter-spacing: -0.5em; opacity: 0; }
+  40% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.fade-in-bottom {
+  animation: fade-in-bottom 1s cubic-bezier(0.390, 0.575, 0.565, 1.000) 0.5s both;
+}
+@keyframes fade-in-bottom {
+  0% { transform: translateY(50px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.slide-up {
+  animation: slide-up 0.8s ease-out 0.3s both;
+}
+@keyframes slide-up {
+  0% { transform: translateY(60px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .glass-card { padding: 30px 20px; }
+  .hero-title { font-size: 2rem; }
+  .article-body { margin-top: -60px; }
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.markdown-body h1 {
+  font-size: 32px;
+}
+
+.markdown-body p {
+  line-height: 2;
+}
+
+.markdown-body code {
+  background: #f5f5f5;
+  padding: 3px 6px;
+  border-radius: 5px;
 }
 </style>
