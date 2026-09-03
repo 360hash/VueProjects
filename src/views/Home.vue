@@ -11,8 +11,10 @@
       <router-link to="/">首页</router-link>
       <router-link to="/articles">文章</router-link>
       <router-link to="/navigation">工具导航</router-link>
-      <router-link to="/Manage">博客后台</router-link>
-
+      <!-- 👇 修改这里：加上类名 login-btn，并添加一个 user 图标 -->
+      <router-link to="/Manage" class="login-btn">
+        <i class="fa-solid fa-user"></i> 登 录
+      </router-link>
     </nav>
 
     <main class="carousel-container" @mouseenter="stopAutoPlay" @mouseleave="startAutoPlay">
@@ -42,15 +44,32 @@
     <section class="recent-updates-section">
       <h2 class="section-title">✨ 最新文章</h2>
       <div class="updates-list">
-        <div class="update-item" v-for="item in articles" :key="item.id" @click="goArticle(item.id)">
-          <img v-if="item.cover_image" :src="item.cover_image" alt="封面图" style="width: 100%; height: 200px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;">
-          <div class="update-meta">
-          <span class="update-date">📅 {{ item.created_at }}</span>
-          <span class="update-tag">👁️ 阅读量: {{ item.views }}</span>
+        <!-- 🌟 修改 1：使用 .slice(0, 3) 只展示前 3 篇文章 -->
+        <div 
+          class="update-item" 
+          v-for="item in articles.slice(0, 3)" 
+          :key="item.id" 
+          @click="goArticle(item.id)"
+        >
+          <!-- 封面图容器（方便做超出的放大动画） -->
+          <div class="cover-wrapper" v-if="item.cover_image">
+            <img :src="item.cover_image" alt="封面图" class="cover-img">
           </div>
-          
+
+          <div class="update-meta">
+            <span class="update-date">📅 {{ item.created_at }}</span>
+            <span class="update-tag">👁️ 阅读量: {{ item.views }}</span>
+          </div>
+
           <h2 class="update-title">{{ item.title }}</h2>
+          
+          <!-- 文章预览内容 -->
           <p class="update-preview">{{ item.content }}</p>
+
+          <!-- 🌟 修改 2：增加点击引导 -->
+          <div class="read-more-btn">
+            阅读全文 <i class="fa-solid fa-arrow-right"></i>
+          </div>
         </div>
       </div>
     </section>
@@ -251,6 +270,39 @@ function goArticle(id){
   padding: 15px 90px; /* 15px是上下，30px是左右。这样左边就会留出 30px 的舒适空隙 */
   
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  /* 👇 新增这一行：确保按钮和文字都在垂直方向居中对齐 */
+  align-items: center;
+}
+
+/* ================= 炫酷登录按钮样式 ================= */
+.site-nav a.login-btn {
+  margin-left: auto; /* 🌟 神奇魔法：这行代码会把按钮推到导航栏的最右侧！ */
+  background-color: #42b983; /* 按钮底色：Vue主题绿 */
+  color: white !important; /* 强制文字白色，防止路由激活时变成绿色 */
+  padding: 8px 26px; /* 按钮内边距，让它撑起来 */
+  border-radius: 30px; /* 大圆角，变成胶囊形状 */
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 图标和文字的间距 */
+  box-shadow: 0 4px 10px rgba(66, 185, 131, 0.3); /* 加上柔和的绿色发光阴影 */
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 平滑的过渡动画 */
+}
+
+/* 鼠标悬浮在按钮上时的动画效果 */
+.site-nav a.login-btn:hover {
+  background-color: #33a06f; /* 悬浮时颜色加深一点 */
+  transform: translateY(-3px); /* 悬浮时按钮微微上浮 */
+  box-shadow: 0 6px 15px rgba(66, 185, 131, 0.5); /* 阴影放大，增加立体浮雕感 */
+}
+
+/* 鼠标点击按下时的效果 */
+.site-nav a.login-btn:active {
+  transform: translateY(0); /* 按下时回落 */
+  box-shadow: 0 2px 5px rgba(66, 185, 131, 0.4);
 }
 
 .site-nav a {
@@ -388,19 +440,105 @@ function goArticle(id){
 }
 
 /* 单条文字卡片 */
+/* 单条文字卡片基础设置 */
 .update-item {
   background-color: white;
-  padding: 20px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border-left: 4px solid #42b983; /* 左边有一条绿色的呼吸线 */
-  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #42b983;
+  cursor: pointer; /* 鼠标变为手型提示可点击 */
+  
+  /* 🌟 核心动画平滑过渡 */
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  user-select: none; /* 防止频繁点击选中文字 */
 }
 
-/* 鼠标放上去时卡片微微浮起 */
+/* 🌟 鼠标悬浮动画：卡片微微上浮 + 阴影扩散 */
 .update-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* 🌟 点击按下的物理反馈：卡片按压按紧缩放效果 */
+.update-item:active {
+  transform: scale(0.98) translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.1s ease;
+}
+
+/* 封面图包裹框与悬浮放大特效 */
+.cover-wrapper {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden; /* 超出的部分隐藏 */
+  margin-bottom: 15px;
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+/* 悬浮卡片时，图片微微放大 */
+.update-item:hover .cover-img {
+  transform: scale(1.05);
+}
+
+/* 文章标题悬浮变色 */
+.update-title {
+  color: #2c3e50;
+  margin: 0 0 10px 0;
+  font-size: 1.3rem;
+  transition: color 0.3s;
+}
+
+.update-item:hover .update-title {
+  color: #42b983; /* 悬浮时标题变成 Vue 绿 */
+}
+
+/* 🌟 核心限制：内容换行 + 最多显示 3 行超长省略 */
+.update-preview {
+  color: #555;
+  line-height: 1.8;
+  font-size: 0.98rem;
+  margin: 0 0 15px 0;
+  
+  /* 1. 支持保留换行 */
+  white-space: pre-wrap; 
+  
+  /* 2. 多行文本截断展示省略号 (...) */
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* 限制只显示 3 行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  /* 防止过长的无空格单词打乱布局 */
+  word-break: break-word; 
+}
+
+/* 阅读全文按钮与图标移动动画 */
+.read-more-btn {
+  color: #42b983;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.3s;
+}
+
+.read-more-btn i {
+  transition: transform 0.3s ease;
+}
+
+/* 悬浮卡片时，箭头向右偏移 */
+.update-item:hover .read-more-btn i {
+  transform: translateX(6px);
 }
 
 /* 日期和标签 */
@@ -420,20 +558,7 @@ function goArticle(id){
   font-weight: 500;
 }
 
-/* 文字标题 */
-.update-title {
-  color: #2c3e50;
-  margin: 0 0 10px 0;
-  font-size: 1.3rem;
-}
 
-/* 文字正文预览 */
-.update-preview {
-  color: #555;
-  line-height: 1.6;
-  font-size: 1rem;
-  margin: 0 0 12px 0;
-}
 
 /* 跳转链接按钮 */
 .read-more-link {

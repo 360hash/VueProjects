@@ -11,7 +11,8 @@
       </header>
 
       <main class="article-list">
-        <div v-for="item in articles" :key="item.id" class="article-card" @click="goArticle(item.id)">
+        <!-- 🌟 1. 修改点击事件，传入 $event 与 item -->
+        <div v-for="item in articles" :key="item.id" class="article-card" @click="goArticle($event, item)">
           <img v-if="item.cover_image" :src="item.cover_image" alt="cover" class="article-thumb" />
           <div class="article-card-body">
             <h3>{{ item.title }}</h3>
@@ -48,6 +49,25 @@
         </article>
       </main>
     </template>
+
+    <!-- 🌟 2. 新增：全屏放大转场动画遮罩层 -->
+    <!-- 🌟 新增：全屏放大转场动画遮罩层（仅文字区块白底放大） -->
+    <div 
+      v-if="transitionActive" 
+      class="expand-overlay"
+      :class="{ 'is-expanded': isExpanded }"
+      :style="overlayStyle"
+    >
+      <div class="overlay-text-content">
+        <h3>{{ transitionData.title }}</h3>
+        <div class="meta-line">
+          <span>📅 {{ transitionData.created_at }}</span>
+          <span>👁️ {{ transitionData.views }}</span>
+        </div>
+        <p>{{ transitionData.preview }}</p>
+      </div>
+      <img v-if="transitioningCover" :src="transitioningCover" class="overlay-img" />
+    </div>
   </div>
 </template>
 
@@ -191,8 +211,56 @@ async function loadArticleDetail(id) {
   }
 }
 
-function goArticle(id) {
-  router.push(`/articles/${id}`)
+// 🌟 在你的 script setup 变量定义区域新增：
+const transitionActive = ref(false)
+const transitioningCover = ref('')
+const overlayStyle = ref({})
+
+// 🌟 替换原来的 goArticle 函数
+function goArticle(event, item) {
+  // 1. 获取点击卡片在屏幕中的绝对位置
+  const cardEl = event.currentTarget
+  const rect = cardEl.getBoundingClientRect()
+  
+  // 2. 拿到当前文章封面（无封面用默认图）
+  transitioningCover.value = item.cover_image || defaultCover
+  
+  // 3. 初始状态：让遮罩层与点击的卡片完全重合
+  overlayStyle.value = {
+    top: `${rect.top}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+    borderRadius: '18px',
+    opacity: 1
+  }
+  
+  // 激活遮罩节点
+  transitionActive.value = true
+
+  // 4. 双重 requestAnimationFrame 确保 DOM 渲染初始样式后，再触发展开动画
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlayStyle.value = {
+        top: '0px',
+        left: '0px',
+        width: '100vw',
+        height: '100vh',
+        borderRadius: '0px',
+        opacity: 1
+      }
+    })
+  })
+
+  // 5. 动画播放完毕后（450ms），切换路由并关闭遮罩
+  setTimeout(() => {
+    router.push(`/articles/${item.id}`)
+    
+    // 给路由渲染留 100ms 缓冲后渐隐遮罩，实现无缝衔接
+    setTimeout(() => {
+      transitionActive.value = false
+    }, 150)
+  }, 450)
 }
 
 function goBack() {
@@ -462,5 +530,61 @@ watch(
   background: #f5f5f5;
   padding: 3px 6px;
   border-radius: 5px;
+}
+
+/* 🌟 新增：全屏放大转场遮罩层样式 */
+/* ================= 升级版转场动画样式 (纯文字白底放大) ================= */
+.expand-overlay {
+  position: fixed;
+  z-index: 9999;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.overlay-text-content {
+  padding: 18px 18px 20px; /* 严格匹配原卡片的内边距，防止跳闪 */
+  transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 当展开到全屏时，文字区块下移，内边距变大 */
+.expand-overlay.is-expanded .overlay-text-content {
+  padding: 80px 40px; 
+}
+
+.overlay-text-content h3 {
+  margin: 0 0 10px;
+  font-size: 1.35rem; /* 匹配原标题大小 */
+  color: #1f2937;
+  transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 展开时标题变大，视觉上引导至文章详情的大标题 */
+.expand-overlay.is-expanded .overlay-text-content h3 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.overlay-text-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.8;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.overlay-text-content .meta-line,
+.overlay-text-content p {
+  transition: all 0.3s ease;
+}
+
+/* 🌟 神奇魔法：展开快结束时，把预览文字和日期渐隐，只留大标题过渡 */
+.expand-overlay.is-expanded .overlay-text-content .meta-line,
+.expand-overlay.is-expanded .overlay-text-content p {
+  opacity: 0;
+  transform: translateY(15px); /* 伴随轻微的下沉消失感 */
 }
 </style>

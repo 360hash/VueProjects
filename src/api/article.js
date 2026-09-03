@@ -1,6 +1,6 @@
 // src/api/article.js
 
-const API_URL = "https://360blog.exploresea360.workers.dev";
+const API_URL = "https://blog360.ccwu.cc";
 
 // 获取全部文章
 export async function getArticles() {
