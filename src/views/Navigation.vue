@@ -6,46 +6,54 @@
     </div>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/css/all.min.css">
 
-    <!-- 导航栏 -->
-    <nav class="navbar" :class="{ scrolled: isScrolled }">
-      <div class="logo">N</div>
-      <div class="search-container">
-        <span class="search-icon">🔍</span>
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="search-input"
-          placeholder="搜索本地，或按回车全网搜索..."
-          @keyup.enter="handleExternalSearch"
-        />
-        <!-- 新增：全网搜索按钮（仅在有输入内容时显示） -->
-        <button 
-          v-show="searchQuery.trim()" 
-          class="external-search-btn"
-          @click="handleExternalSearch"
-        >
-          百度搜索
-        </button>
+    <!-- 页面布局：顶部搜索/分类 + 内容区 -->
+    <div class="page-layout">
+    <!-- 顶部面板：搜索 + 分类（不固定，随页面滚动） -->
+    <div class="top-panel">
+      <!-- 搜索栏 -->
+      <div class="search-section">
+        <div class="search-container">
+          <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="search-input"
+            placeholder="搜索站点..."
+            @keyup.enter="handleExternalSearch"
+          />
+          <!-- 右侧搜索按钮（图标+名称） -->
+          <button 
+            class="search-submit"
+            @click="handleExternalSearch"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/>
+              <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            搜索
+          </button>
+        </div>
       </div>
-      <div class="user-avatar">U</div>
-    </nav>
 
-    <!-- 分类标签栏 -->
-    <div class="category-bar" :class="{ 'sticky-active': isScrolled }">
-      <div class="category-tags">
-        <button
-          v-for="cat in categories"
-          :key="cat.id"
-          class="category-tag"
-          :class="{ active: selectedCategory === cat.id }"
-          @click="selectedCategory = cat.id"
-        >
-          {{ cat.name }}
-          <span class="tag-badge">{{ getCategoryCount(cat.id) }}</span>
-        </button>
+      <!-- 分类标签栏（横排） -->
+      <div class="category-bar">
+        <div class="category-tags">
+          <button
+            v-for="cat in categories"
+            :key="cat.id"
+            class="category-tag"
+            :class="{ active: selectedCategory === cat.id }"
+            @click="selectedCategory = cat.id"
+          >
+            {{ cat.name }}
+            <span class="tag-badge">{{ getCategoryCount(cat.id) }}</span>
+          </button>
+        </div>
       </div>
     </div>
-
 
     <!-- 主内容区 -->
     <main class="main-content">
@@ -94,6 +102,7 @@
         </div>
       </div>
     </main>
+    </div><!-- /page-layout -->
 
     <!-- 模态框 -->
     <Teleport to="body">
@@ -126,12 +135,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 
 // ==================== 状态定义 ====================
 const searchQuery = ref("");
 const selectedCategory = ref("all");
-const isScrolled = ref(false);
 const selectedSite = ref(null);
 
 const categories = [
@@ -795,6 +803,25 @@ const filteredWebsites = computed(() => {
     result = result.filter((site) => site.category === selectedCategory.value);
   }
 
+  // 搜索：过滤不匹配的，匹配的按相关度排序（名称匹配 > 描述匹配）
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.trim().toLowerCase();
+
+    const score = (site) => {
+      const name = site.name.toLowerCase();
+      const desc = site.description.toLowerCase();
+      if (name.includes(query)) return 0;        // 名称匹配：最前
+      if (desc.includes(query)) return 1;        // 描述匹配：次之
+      return 2;                                  // 不匹配：过滤掉
+    };
+
+    result = result
+      .map((site) => ({ site, s: score(site) }))
+      .filter((item) => item.s < 2)
+      .sort((a, b) => a.s - b.s)
+      .map((item) => item.site);
+  }
+
   return result;
 });
 
@@ -823,7 +850,7 @@ const getFavicon = (url) => {
     // 提取域名 (例如从 https://github.com 提取出 github.com)
     const domain = new URL(url).hostname;
     // 使用 Google 的服务获取清晰图标（sz=128代表128px高清）
-    return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+    return `https://favicon.im/${domain}?larger=128`;
   } catch (error) {
     return ''; // 解析失败时返回空
   }
@@ -868,17 +895,7 @@ const handleIconMouseLeave = (event) => {
 };
 
 // ==================== 滚动监听 ====================
-const handleScroll = () => {
-  isScrolled.value = window.scrollY > 10;
-};
-
-onMounted(() => {
-  window.addEventListener("scroll", handleScroll);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("scroll", handleScroll);
-});
+// 分类栏改为侧边栏竖排后不再需要 sticky 滚动监听
 </script>
 
 <style scoped>
@@ -975,173 +992,134 @@ onUnmounted(() => {
   }
 }
 
-/* ===== 导航栏 ===== */
-.navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background-color: #35495e;
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
-  z-index: 1000;
-  transition:
-    background-color 0.3s var(--ease-smooth),
-    box-shadow 0.3s var(--ease-smooth);
+/* ===== 页面布局：顶部面板 + 内容区 ===== */
+.page-layout {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 84px 24px 24px;   /* 顶部留出全局导航栏空间 */
+  position: relative;
+  z-index: 1;
 }
 
-.navbar.scrolled {
-  background-color: #2c3e50;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+/* ===== 顶部面板（搜索 + 分类，不固定） ===== */
+.top-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #42b983;
+/* ===== 搜索栏（一体式卡片） ===== */
+.search-section {
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: bold;
-  font-size: 18px;
-  cursor: pointer;
-  flex-shrink: 0;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(66, 185, 131, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(66, 185, 131, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(66, 185, 131, 0);
-  }
 }
 
 .search-container {
-  flex: 1;
-  max-width: 600px;
-  margin: 0 32px;
-  position: relative;
-}
-
-.search-input {
-  width: 100%;
-  height: 40px;
-  border-radius: 24px;
-  background-color: #f5f7fa;
+  width: 620px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
   border: 1px solid #e4e7ed;
-  padding: 0 90px 0 40px;
-  font-size: 14px;
-  color: #2c3e50;
-  outline: none;
-  transition: all 0.3s var(--ease-smooth);
+  border-radius: 24px;
+  padding: 5px 5px 5px 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* 新增下面这一段按钮样式 */
-.external-search-btn {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #42b983;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 18px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.external-search-btn:hover { background-color: #2e7d5a; }
-
-.search-input::placeholder {
-  color: #909399;
-}
-
-.search-input:focus {
+/* 聚焦时：绿色边框 + 柔光 */
+.search-container:focus-within {
   border-color: #42b983;
-  background-color: #e8f8f0;
+  box-shadow: 0 0 0 4px rgba(66, 185, 131, 0.12),
+              0 4px 16px rgba(66, 185, 131, 0.10);
 }
 
 .search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  flex-shrink: 0;
   color: #909399;
-  pointer-events: none;
+  transition: color 0.3s ease;
 }
 
-.user-avatar {
-  width: 36px;
+.search-container:focus-within .search-icon {
+  color: #42b983;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
   height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #42b983, #1abc9c);
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.search-input::placeholder {
+  color: #a8abb2;
+}
+
+/* 搜索按钮：渐变 + 动效 */
+.search-submit {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #42b983, #2e9e6e);
   color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  border: none;
+  border-radius: 18px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 585;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
-.user-avatar:active {
-  transform: scale(0.96);
+.search-submit:hover {
+  filter: brightness(1.07);
+  box-shadow: 0 3px 12px rgba(66, 185, 131, 0.35);
+  transform: translateY(-1px);
 }
 
-/* ===== 分类标签栏 ===== */
+.search-submit:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ===== 分类标签栏（顶部横排，不固定） ===== */
 .category-bar {
-  position: sticky;
-  top: 64px;
-  background-color: #f5f7fa;
-  padding: 16px 24px;
-  z-index: 900;
-  border-bottom: 3px solid transparent;
-  transition: border-color 0.3s var(--ease-smooth);
-  overflow-x: auto;
-  white-space: nowrap;
-}
-
-.category-bar::-webkit-scrollbar {
-  display: none;
-}
-
-.category-bar.sticky-active {
-  border-bottom-color: #42b983;
+  display: flex;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
 }
 
 .category-tags {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
 
 .category-tag {
   padding: 8px 16px;
   border-radius: 20px;
   border: 1px solid #e4e7ed;
-  background: transparent;
-  color: #909399;
+  background: #fff;
+  color: #606266;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 555;
   cursor: pointer;
-  transition: all 0.3s var(--ease-smooth);
+  transition: all 0.25s var(--ease-smooth);
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  text-align: left;
 }
 
 .category-tag:hover {
@@ -1165,11 +1143,7 @@ onUnmounted(() => {
 
 /* ===== 主内容区 ===== */
 .main-content {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 88px auto 0;
   position: relative;
-  z-index: 1;
 }
 
 .card-grid {
@@ -1393,5 +1367,61 @@ onUnmounted(() => {
   height: 24px;
   border-radius: 4px; /* 让图标有一点点圆角更精美 */
   object-fit: contain; /* 保证图标比例不失真 */
+}
+
+/* ===== 移动端适配：顶部面板紧凑 ===== */
+@media (max-width: 700px) {
+  .page-layout {
+    padding: 72px 14px 20px;
+  }
+
+  .top-panel {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .search-container {
+    width: 100%;
+    padding: 4px 4px 4px 12px;
+    border-radius: 20px;
+  }
+
+  .search-input {
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .search-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* 手机端：搜索按钮小号 */
+  .search-submit {
+    padding: 7px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .search-submit svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .category-tags {
+    gap: 8px;
+  }
+
+  .category-tag {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  /* 卡片网格单列 */
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 </style>

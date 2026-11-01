@@ -1,16 +1,5 @@
 <template>
   <div class="views-page-container">
-    <header class="site-header">
-      <h1>360</h1>
-      <p>为平等和自由服务</p>
-    </header>
-
-    <nav class="site-nav">
-      <router-link to="/">首页</router-link>
-      <router-link to="/articles">文章</router-link>
-      <router-link to="/views">浏览量</router-link>
-    </nav>
-
     <main class="views-main">
       <h2 class="page-title">📊 数据统计</h2>
 
@@ -102,46 +91,7 @@ const maxViews = computed(() => {
   background-color: #f8f9fa;
 }
 
-/* 网站头 */
-.site-header {
-  background-color: #2c3e50;
-  width: 100%;
-  color: white;
-  text-align: center;
-  padding: 5px 0;
-}
-
-.site-header h1 {
-  margin: 0;
-  font-size: 2.5rem;
-}
-
-.site-header p {
-  margin: 0;
-  color: #aeb6bf;
-}
-
-/* 导航栏 */
-.site-nav {
-  background-color: #34495e;
-  display: flex;
-  justify-content: flex-start;
-  gap: 100px;
-  padding: 15px 90px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.site-nav a {
-  color: white;
-  text-decoration: none;
-  font-size: 1.1rem;
-  font-weight: 500;
-  transition: color 0.3s;
-}
-
-.site-nav a:hover, .site-nav a.router-link-active {
-  color: #42b983;
-}
+/* 网站头已由全局 NavBar 组件接管 */
 
 /* 主体内容 */
 .views-main {

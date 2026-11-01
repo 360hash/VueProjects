@@ -5,6 +5,7 @@ import Admin from '../views/Admin.vue'
 import Navigation from '../views/Navigation.vue'
 import Manage from '../views/Manage.vue'
 import Login from '../views/Login.vue'
+import Rncourage from '../views/Rncourage.vue'
 
 const routes = [
   {
@@ -31,6 +32,11 @@ const routes = [
     path: '/Navigation',
     name: 'Navigation',
     component: Navigation
+  },
+  {
+    path: '/Rncourage',
+    name: 'Rncourage',
+    component: Rncourage
   },
   {
     path: '/Manage',
