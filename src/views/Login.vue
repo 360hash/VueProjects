@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { login } from "@/api/article";
 
@@ -58,6 +58,13 @@ const password = ref("");
 
 const loading = ref(false);
 const errorMessage = ref("");
+
+// 从别处跳过来时带 expired=1，说明是 Token 过期被踢出来的
+onMounted(() => {
+  if (route.query.expired) {
+    errorMessage.value = "登录已过期，请重新登录";
+  }
+});
 
 async function handleLogin() {
   errorMessage.value = "";

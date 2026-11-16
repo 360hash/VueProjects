@@ -37,3 +37,8 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# PyInstaller 产物（exe 用 tools/sender/sender.py 重新打包即可）
+tools/sender/build/
+tools/sender/dist/
+tools/sender/*.spec

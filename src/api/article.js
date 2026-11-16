@@ -2,6 +2,15 @@
 
 const API_URL = "https://blog360.ccwu.cc";
 
+// 后端返回 401 = Token 过期或无效，清掉本地 Token 并回登录页
+function handleUnauthorized(response) {
+  if (response.status !== 401) return;
+  localStorage.removeItem("admin_token");
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login?expired=1";
+  }
+}
+
 // 获取全部文章
 export async function getArticles() {
   const response = await fetch(`${API_URL}/api/articles`);
@@ -57,6 +66,8 @@ export async function publishArticle(articleData) {
 
   const data = await response.json();
 
+  handleUnauthorized(response);
+
   if (!response.ok) {
     throw new Error(data.message || "发布失败");
   }
@@ -82,6 +93,8 @@ export async function updateArticle(id, articleData) {
 
   const data = await response.json();
 
+  handleUnauthorized(response);
+
   if (!response.ok) {
     throw new Error(data.message || "修改失败");
   }
@@ -104,6 +117,8 @@ export async function deleteArticle(id) {
   );
 
   const data = await response.json();
+
+  handleUnauthorized(response);
 
   if (!response.ok) {
     throw new Error(data.message || "删除失败");
